@@ -1,3 +1,4 @@
+
 namespace :phonegap do
   namespace :rails do
     config_path = File.join(Rails.root, 'config', 'phonegap_rails.yml')
@@ -120,6 +121,64 @@ namespace :phonegap do
         command = "#{project_path}/cordova/log"
         puts "Log: #{command}"
         puts `#{command}`
+      end
+      desc 'Check Android environment'
+      task :check => :environment do
+
+        # http://stackoverflow.com/questions/2108727/which-in-ruby-checking-if-program-exists-in-path-from-ruby
+        # Cross-platform way of finding an executable in the $PATH.
+        #
+        #  which('ruby') #=> /usr/bin/ruby
+        #
+        #  Included here to prevent global pollution
+
+        def which(cmd)
+          exts = ENV['PATHEXT'] ? ENV['PATHEXT'].split(';') : ['']
+          ENV['PATH'].split(File::PATH_SEPARATOR).each do |path|
+            exts.each { |ext|
+              exe = File.join(path, "#{cmd}#{ext}")
+              return exe if File.executable? exe
+            }
+          end
+          return nil
+        end
+
+        puts 'Checking Android files'
+
+        bins_not_found = []
+        envs_not_found = []
+
+        required_bins = ['ant', 'adb', 'android']
+        required_envs = ['ANDROID_SKD_HOME']
+
+        required_envs.each do |env|
+          print "\tChecking for ENV '#{env}' .. "
+          if ENV[env]
+            puts "OK"
+          else
+            puts "NOT FOUND"
+            envs_not_found.push env
+          end
+        end
+
+        required_bins.each do |bin|
+          print "\tChecking for executable '#{bin}' .. "
+          if which(bin)
+            puts "OK"
+          else
+            puts "NOT FOUND"
+            bins_not_found.push bin
+          end
+        end
+
+        if envs_not_found.size != 0
+          puts "Environment variable(s) #{envs_not_found.to_s} missing. Android builds might fail."
+        end
+
+        if bins_not_found.size != 0
+          puts "File(s) #{bins_not_found.to_s} missing from environment. Android builds will fail."
+        end
+
       end
     end
     namespace :ios do
